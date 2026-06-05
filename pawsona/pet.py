@@ -62,6 +62,15 @@ def load_pet(name: str, pets_dir: Path) -> Pet:
     raise PetLoadError(f"could not find pet '{name}' in {pets_dir} or built-in pets")
 
 
+def describe_pet_source(name: str, pets_dir: Path) -> str:
+    path = _find_pet_file(name, pets_dir)
+    if path is not None:
+        return str(path)
+    if _builtin_pet_resource(name).is_file():
+        return f"builtin:{name}"
+    return "unknown"
+
+
 def _find_pet_file(name: str, pets_dir: Path) -> Path | None:
     candidates = [
         pets_dir / f"{name}.yaml",
@@ -74,13 +83,17 @@ def _find_pet_file(name: str, pets_dir: Path) -> Path | None:
 
 
 def _read_builtin_pet(name: str) -> dict[str, Any] | None:
-    resource = resources.files("pawsona").joinpath("builtin_pets", f"{name}.yaml")
+    resource = _builtin_pet_resource(name)
     if not resource.is_file():
         return None
     try:
         return load_yaml_text(resource.read_text(encoding="utf-8"), source=str(resource))
     except ValueError as error:
         raise PetLoadError(str(error)) from error
+
+
+def _builtin_pet_resource(name: str) -> resources.abc.Traversable:
+    return resources.files("pawsona").joinpath("builtin_pets", f"{name}.yaml")
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:

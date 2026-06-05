@@ -5,7 +5,16 @@ from pathlib import Path
 from typing import Callable
 
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
-from pawsona.pet import SKILL_KEYS, TRAIT_KEYS, PetLoadError, load_pet, write_pet_profile
+from pawsona.pet import (
+    SKILL_KEYS,
+    TRAIT_KEYS,
+    Pet,
+    PetLoadError,
+    describe_pet_source,
+    load_pet,
+    write_pet_profile,
+)
+from pawsona.state import LoadedState, StateError, apply_trained_state, save_trained_state
 from pawsona.training import normalize_feedback, scenario_for_round, train_once
 
 
@@ -19,6 +28,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="pets",
         help="Directory containing pet YAML definitions.",
     )
+    parser.add_argument(
+        "--saves-dir",
+        default="saves",
+        help="Directory containing trained pet state JSON files.",
+    )
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -27,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Load and display a pet definition.",
     )
     inspect_parser.add_argument("pet", help="Pet name, for example: hermes")
+    inspect_parser.add_argument(
+        "--base",
+        action="store_true",
+        help="Inspect the raw base profile without saved training state.",
+    )
 
     create_parser = subparsers.add_parser(
         "create",
@@ -55,6 +74,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=10,
         help="Number of training rounds to run.",
     )
+    play_parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Run a temporary session without writing trained state.",
+    )
 
     return parser
 
@@ -64,22 +88,33 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "inspect":
-        return inspect_pet(args.pet, Path(args.pets_dir))
+        return inspect_pet(
+            args.pet,
+            Path(args.pets_dir),
+            Path(args.saves_dir),
+            base=args.base,
+        )
     if args.command == "create":
         return create_pet(Path(args.pets_dir), force=args.force)
     if args.command == "act":
-        return act_pet(args.pet, Path(args.pets_dir))
+        return act_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
     if args.command == "play":
-        return play_pet(args.pet, Path(args.pets_dir), rounds=args.rounds)
+        return play_pet(
+            args.pet,
+            Path(args.pets_dir),
+            Path(args.saves_dir),
+            rounds=args.rounds,
+            no_save=args.no_save,
+        )
 
     parser.print_help()
     return 0
 
 
-def inspect_pet(name: str, pets_dir: Path) -> int:
+def inspect_pet(name: str, pets_dir: Path, saves_dir: Path, base: bool = False) -> int:
     try:
-        pet = load_pet(name, pets_dir)
-    except PetLoadError as error:
+        pet, loaded_state = _load_cli_pet(name, pets_dir, saves_dir, use_saved=not base)
+    except (PetLoadError, StateError) as error:
         print(f"error: {error}")
         return 1
 
@@ -89,6 +124,7 @@ def inspect_pet(name: str, pets_dir: Path) -> int:
     print(f"Age: {pet.age}")
     print(f"Sex: {pet.sex}")
     print(f"Neutered: {str(pet.neutered).lower()}")
+    _print_state_summary(base, loaded_state)
     print("Traits:")
     for trait, value in sorted(pet.traits.items()):
         print(f"  {trait}: {value}")
@@ -130,10 +166,10 @@ def create_pet(pets_dir: Path, force: bool = False) -> int:
     return 0
 
 
-def act_pet(name: str, pets_dir: Path) -> int:
+def act_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
     try:
-        pet = load_pet(name, pets_dir)
-    except PetLoadError as error:
+        pet, _loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+    except (PetLoadError, StateError) as error:
         print(f"error: {error}")
         return 1
 
@@ -146,18 +182,29 @@ def act_pet(name: str, pets_dir: Path) -> int:
     return 0
 
 
-def play_pet(name: str, pets_dir: Path, rounds: int) -> int:
+def play_pet(
+    name: str,
+    pets_dir: Path,
+    saves_dir: Path,
+    rounds: int,
+    no_save: bool = False,
+) -> int:
     if rounds < 1:
         print("error: --rounds must be 1 or greater")
         return 1
 
     try:
-        pet = load_pet(name, pets_dir)
-    except PetLoadError as error:
+        pet, loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+    except (PetLoadError, StateError) as error:
         print(f"error: {error}")
         return 1
 
     print(f"Training {pet.name} for {rounds} rounds")
+    if loaded_state is not None:
+        print(f"Loaded saved state: {loaded_state.path}")
+        print(f"Rounds trained: {loaded_state.rounds_trained}")
+    if no_save:
+        print("Save mode: off")
     print("Feedback: 1 reward, 2 praise, 3 ignore, 4 correct, q quit")
 
     completed_rounds = 0
@@ -186,7 +233,48 @@ def play_pet(name: str, pets_dir: Path, rounds: int) -> int:
 
     print("")
     print(f"Completed rounds: {completed_rounds}/{rounds}")
+    if completed_rounds > 0 and not no_save:
+        try:
+            path = save_trained_state(
+                pet,
+                name,
+                saves_dir,
+                completed_rounds,
+                source_profile=describe_pet_source(name, pets_dir),
+            )
+        except StateError as error:
+            print(f"error: {error}")
+            return 1
+        print(f"Saved trained state: {path}")
+    elif no_save:
+        print("Saved trained state: skipped")
     return 0
+
+
+def _load_cli_pet(
+    name: str,
+    pets_dir: Path,
+    saves_dir: Path,
+    use_saved: bool = True,
+) -> tuple[Pet, LoadedState | None]:
+    pet = load_pet(name, pets_dir)
+    if not use_saved:
+        return pet, None
+    return apply_trained_state(pet, name, saves_dir)
+
+
+def _print_state_summary(base: bool, loaded_state: LoadedState | None) -> None:
+    if base:
+        print("State: base")
+        return
+    if loaded_state is None:
+        print("State: base")
+        return
+    print("State: trained")
+    print(f"Save File: {loaded_state.path}")
+    print(f"Rounds Trained: {loaded_state.rounds_trained}")
+    if loaded_state.last_updated is not None:
+        print(f"Last Updated: {loaded_state.last_updated}")
 
 
 def _ask_text(prompt: str, input_fn: Callable[[str], str] = input) -> str:

@@ -10,7 +10,7 @@ The first public version focuses on dogs. The behavior model is intentionally si
 
 ## Current Status
 
-This repository is in the early CLI phase. Pawsona can load built-in pet profiles, inspect their model state, create new YAML profiles, and generate the first simple behavior-model actions.
+This repository is in the early CLI phase. Pawsona can load built-in pet profiles, inspect their model state, create new YAML profiles, generate simple behavior-model actions, and persist trained skills and memory between CLI runs.
 
 ## Try It
 
@@ -57,6 +57,12 @@ pawsona inspect hermes
 pawsona inspect hera
 ```
 
+Inspect only the raw base YAML profile:
+
+```bash
+pawsona inspect hermes --base
+```
+
 ## Create A Pet
 
 ```bash
@@ -81,7 +87,13 @@ pawsona play hera
 
 Training sessions run for 10 rounds by default. Feedback options are `reward`, `praise`, `ignore`, and `correct`.
 
-Training updates are session-only until persistence lands in the next milestone.
+Training updates are saved to `saves/<pet>.json`. Base YAML profiles are not modified.
+
+Run a temporary training session without writing a save file:
+
+```bash
+pawsona play hermes --no-save
+```
 
 ## Project Shape
 
@@ -91,6 +103,7 @@ pawsona/
   behavior.py
   pet.py
   simple_yaml.py
+  state.py
   training.py
 pets/
   hermes.yaml

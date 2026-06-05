@@ -1,0 +1,39 @@
+name: Hera
+species: dog
+breed: pug
+age: 7
+sex: female
+neutered: true
+
+traits:
+  energy: 0.9
+  confidence: 0.25
+  sociability: 0.85
+  attachment: 0.95
+  affection_seeking: 1.0
+  curiosity: 0.5
+  impulsivity: 0.9
+  self_control: 0.15
+  sensitivity: 0.8
+  trainability: 0.55
+  vigilance: 0.55
+  food_drive: 0.95
+  play_drive: 0.75
+
+skills:
+  recall: 0.25
+  focus: 0.25
+  settle: 0.2
+  fetch: 0.2
+
+memory:
+  home: 0.45
+  door_noise: 0.2
+  toy: 0.65
+  owner_arrives_home: 0.7
+  outside: 0.85
+  food: 0.95
+  sweets: 0.8
+  separation: -0.7
+  running: 0.8
+  pooping_outside: -0.2

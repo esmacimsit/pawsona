@@ -1,0 +1,29 @@
+name:
+species: dog
+breed:
+age:
+sex:
+neutered:
+
+traits:
+  energy:
+  confidence:
+  sociability:
+  attachment:
+  affection_seeking:
+  curiosity:
+  impulsivity:
+  self_control:
+  sensitivity:
+  trainability:
+  vigilance:
+  food_drive:
+  play_drive:
+
+skills:
+  recall:
+  focus:
+  settle:
+  fetch:
+
+memory: {}

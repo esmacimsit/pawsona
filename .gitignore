@@ -1,1 +1,16 @@
-/.DS_Store
+.DS_Store
+/milestones.md
+
+__pycache__/
+*.py[cod]
+.venv/
+.conda/
+.env
+.pytest_cache/
+
+dist/
+build/
+*.egg-info/
+
+saves/*
+!saves/.gitkeep

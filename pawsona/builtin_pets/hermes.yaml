@@ -1,0 +1,38 @@
+name: Hermes
+species: dog
+breed: pug
+age: 9
+sex: male
+neutered: false
+
+traits:
+  energy: 0.25
+  confidence: 0.75
+  sociability: 0.35
+  attachment: 0.8
+  affection_seeking: 0.2
+  curiosity: 0.7
+  impulsivity: 0.2
+  self_control: 0.85
+  sensitivity: 0.9
+  trainability: 0.55
+  vigilance: 0.85
+  food_drive: 0.8
+  play_drive: 0.15
+
+skills:
+  recall: 0.45
+  focus: 0.6
+  settle: 0.75
+  fetch: 0.2
+
+memory:
+  home: 0.6
+  door_noise: 0.1
+  toy: 0.2
+  owner_arrives_home: 0.7
+  outside: 0.8
+  meat: 0.9
+  sweets: -0.5
+  human_distress: 0.8
+  clean_bedding: 0.7

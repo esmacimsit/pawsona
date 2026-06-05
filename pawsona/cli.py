@@ -15,6 +15,7 @@ from pawsona.pet import (
     write_pet_profile,
 )
 from pawsona.state import LoadedState, StateError, apply_trained_state, save_trained_state
+from pawsona.status import observe_status
 from pawsona.training import normalize_feedback, scenario_for_round, train_once
 
 
@@ -63,6 +64,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     act_parser.add_argument("pet", help="Pet name, for example: hermes")
 
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Summarize observed behavior without changing state.",
+    )
+    status_parser.add_argument("pet", help="Pet name, for example: hermes")
+    status_parser.add_argument(
+        "--rounds",
+        type=int,
+        default=10,
+        help="Number of simulated observations to run.",
+    )
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -98,6 +111,13 @@ def main(argv: list[str] | None = None) -> int:
         return create_pet(Path(args.pets_dir), force=args.force)
     if args.command == "act":
         return act_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
+    if args.command == "status":
+        return status_pet(
+            args.pet,
+            Path(args.pets_dir),
+            Path(args.saves_dir),
+            rounds=args.rounds,
+        )
     if args.command == "play":
         return play_pet(
             args.pet,
@@ -179,6 +199,33 @@ def act_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
     print("Scores:")
     for score_name, score in sorted(scores.items(), key=lambda item: item[1], reverse=True):
         print(f"  {score_name}: {score}")
+    return 0
+
+
+def status_pet(name: str, pets_dir: Path, saves_dir: Path, rounds: int) -> int:
+    if rounds < 1:
+        print("error: --rounds must be 1 or greater")
+        return 1
+
+    try:
+        pet, loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+    except (PetLoadError, StateError) as error:
+        print(f"error: {error}")
+        return 1
+
+    observation = observe_status(pet, rounds=rounds)
+    print(f"{pet.name} Status")
+    _print_state_summary(base=False, loaded_state=loaded_state)
+    print(f"Observed Rounds: {observation.rounds}")
+    print("Behavior Frequencies:")
+    for action, count in observation.action_counts.most_common():
+        print(f"  {action}: {count}/{observation.rounds}")
+    print("Scenario Observations:")
+    for scenario_name, counts in observation.scenario_counts.items():
+        if not counts:
+            continue
+        action, count = counts.most_common(1)[0]
+        print(f"  {scenario_name}: {action} {count}/{sum(counts.values())}")
     return 0
 
 

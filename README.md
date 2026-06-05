@@ -78,6 +78,15 @@ pawsona act hermes
 pawsona act hera
 ```
 
+## Observe Status
+
+```bash
+pawsona status hermes
+pawsona status hera
+```
+
+Status runs simulated observations and summarizes behavior frequencies. It does not train the pet or write save files.
+
 ## Train In The Terminal
 
 ```bash
@@ -104,6 +113,7 @@ pawsona/
   pet.py
   simple_yaml.py
   state.py
+  status.py
   training.py
 pets/
   hermes.yaml

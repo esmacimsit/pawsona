@@ -17,12 +17,58 @@ The project can currently:
 - score actions from pet traits, skills, memory, and scenario state
 - run a 10-round interactive training loop in the terminal
 - install into a dedicated conda environment named `paw`
+- install from PyPI with `pip install pawsona`
 
 The current implementation covers the practical foundation for milestones M0 through M4.
 
-The package is being prepared for an initial alpha PyPI release as `pawsona==0.1.0a1`.
+The initial alpha PyPI release has been published as `pawsona==0.1.0a1`.
 
 The first public version focuses on dogs. The broader project language still uses "pet" because future versions may expand beyond dogs.
+
+## Release Status
+
+Status: published.
+
+Release:
+
+- PyPI package: `pawsona`
+- Version: `0.1.0a1`
+- Primary CLI: `pawsona`
+- Short alias: `paw`
+- Python import package: `pawsona`
+- License: MIT
+- Author: `esmacimsit`
+- Maintainer: `esmacimsit`
+- Git tag: `v0.1.0a1`
+- Release commit: `ed8ae9f Release 0.1.0a1`
+
+Published package:
+
+```bash
+pip install pawsona
+```
+
+Project URL:
+
+```text
+https://pypi.org/project/pawsona/
+```
+
+Post-publish smoke test was run in a clean virtual environment under `/tmp/pawsona-test`.
+
+Verified from PyPI:
+
+```bash
+pip install pawsona
+pawsona --help
+paw --help
+pawsona inspect hermes
+pawsona inspect hera
+pawsona act hermes
+pawsona act hera
+```
+
+All commands passed. Built-in Hermes and Hera profiles load correctly after installing from PyPI, so packaged pet data is included and usable.
 
 ## Original Direction
 
@@ -288,7 +334,10 @@ include = ["pawsona*"]
 - defines package metadata
 - defines Python requirement
 - defines dependency on `PyYAML`
-- defines CLI script:
+- defines alpha version `0.1.0a1`
+- defines MIT license metadata
+- defines author and maintainer as `esmacimsit`
+- defines CLI scripts:
 
 ```toml
 pawsona = "pawsona.cli:main"
@@ -296,6 +345,12 @@ paw = "pawsona.cli:main"
 ```
 
 - restricts setuptools package discovery to `pawsona*`
+- includes packaged built-in pet data:
+
+```toml
+[tool.setuptools.package-data]
+pawsona = ["builtin_pets/*.yaml"]
+```
 
 `requirements.txt`
 
@@ -365,6 +420,7 @@ python -m pawsona
 - YAML pet loading
 - profile writing
 - schema validation
+- built-in pet fallback loading from package data
 
 `pawsona/simple_yaml.py`
 
@@ -388,6 +444,16 @@ python -m pawsona
 - single-round training update logic
 - memory update logic
 - value clamping
+
+`pawsona/builtin_pets/hermes.yaml`
+
+- packaged Hermes profile used after `pip install pawsona`
+- mirrors the current built-in Hermes profile
+
+`pawsona/builtin_pets/hera.yaml`
+
+- packaged Hera profile used after `pip install pawsona`
+- mirrors the current built-in Hera profile
 
 ### Pet Data
 
@@ -526,11 +592,27 @@ Expected tracked/untracked project files include:
 Expected ignored local/generated files include:
 
 - `.DS_Store`
+- `dist/`
 - `milestones.md`
 - `pawsona.egg-info/`
 - `pawsona/__pycache__/`
 
 `milestones.md` is intentionally ignored because it is being used as a local planning/checklist file.
+
+`dist/` is intentionally ignored because build artifacts can be regenerated with:
+
+```bash
+conda run -n paw python -m build
+```
+
+The alpha release artifacts that were checked before publishing were:
+
+```text
+dist/pawsona-0.1.0a1-py3-none-any.whl
+dist/pawsona-0.1.0a1.tar.gz
+```
+
+`twine check dist/*` passed before upload.
 
 ## Known Design Decisions
 
@@ -552,6 +634,8 @@ Planned M5 shape:
 Hermes and Hera are built-in pets, but their exact YAML content may be edited by the user.
 
 Future code changes should avoid overwriting these profiles unless the task explicitly says to edit them.
+
+For PyPI installs, copies of Hermes and Hera also live under `pawsona/builtin_pets/` as packaged data. If the root `pets/` profiles change intentionally, update the packaged copies before the next release.
 
 ### YAML Loading
 

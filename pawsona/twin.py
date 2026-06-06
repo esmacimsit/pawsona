@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from pawsona import __version__
+from pawsona.challenge import Challenge
 from pawsona.pet import Pet, write_pet_profile
 from pawsona.state import LoadedState, pet_key, save_trained_state_snapshot
+from pawsona.tradeoff import TradeoffReport
 
 
 class TwinError(Exception):
@@ -20,6 +22,8 @@ class TwinExportResult:
     path: Path
     pet_key: str
     rounds_trained: int
+    is_challenge_submission: bool
+    final_score: int | None = None
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,8 @@ def export_twin(
     loaded_state: LoadedState | None,
     out_path: Path,
     source_profile: str,
+    challenge: Challenge | None = None,
+    challenge_metrics: TradeoffReport | None = None,
 ) -> TwinExportResult:
     key = pet_key(name)
     rounds_trained = loaded_state.rounds_trained if loaded_state is not None else 0
@@ -65,9 +71,30 @@ def export_twin(
         },
     }
 
+    if challenge is not None and challenge_metrics is not None:
+        archive["challenge_submission"] = {
+            "challenge_id": challenge.id,
+            "challenge_name": challenge.name,
+            "challenge_version": challenge.version,
+            "difficulty": challenge.difficulty,
+            "base_version": challenge.version,
+            "metrics": {
+                "eval_overall_score": challenge_metrics.task_score,
+                "generalization_score": challenge_metrics.generalization_score,
+                "overfit_score": challenge_metrics.overfit_score,
+                "final_score": _final_score(challenge_metrics),
+            },
+        }
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(archive, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return TwinExportResult(path=out_path, pet_key=key, rounds_trained=rounds_trained)
+    return TwinExportResult(
+        path=out_path,
+        pet_key=key,
+        rounds_trained=rounds_trained,
+        is_challenge_submission=challenge is not None,
+        final_score=_final_score(challenge_metrics) if challenge_metrics is not None else None,
+    )
 
 
 def import_twin(
@@ -81,8 +108,12 @@ def import_twin(
         raise TwinError(f"{archive_path}: 'pet_key' must be a normalized pet key")
     base_profile = _required_mapping(archive, "base_profile", archive_path)
     trained_state = _required_mapping(archive, "trained_state", archive_path)
+    challenge_submission = _optional_mapping(archive.get("challenge_submission"), archive_path)
+    profile_name = key
+    if challenge_submission is not None:
+        profile_name = _required_string(challenge_submission, "challenge_id", archive_path)
 
-    profile_path = pets_dir / f"{key}.yaml"
+    profile_path = pets_dir / f"{profile_name}.yaml"
     wrote_profile = False
     if not profile_path.exists():
         write_pet_profile(profile_path, base_profile)
@@ -99,7 +130,7 @@ def import_twin(
     pet = _profile_and_state_to_pet(base_profile, trained_state, archive_path)
     state_path = save_trained_state_snapshot(
         pet,
-        key,
+        profile_name,
         saves_dir,
         rounds_trained=rounds_trained,
         source_profile=source_profile,
@@ -107,7 +138,7 @@ def import_twin(
     )
 
     return TwinImportResult(
-        pet_key=key,
+        pet_key=profile_name,
         profile_path=profile_path,
         state_path=state_path,
         wrote_profile=wrote_profile,
@@ -147,6 +178,15 @@ def _pet_to_profile(pet: Pet) -> dict[str, Any]:
     }
 
 
+def _final_score(metrics: TradeoffReport) -> int:
+    raw_score = (
+        metrics.task_score * 0.45
+        + metrics.generalization_score * 0.45
+        - metrics.overfit_score * 0.10
+    )
+    return round(max(0.0, min(100.0, raw_score)))
+
+
 def _profile_and_state_to_pet(
     base_profile: dict[str, Any],
     trained_state: dict[str, Any],
@@ -175,6 +215,14 @@ def _required_mapping(data: dict[str, Any], key: str, path: Path) -> dict[str, A
     value = data.get(key)
     if not isinstance(value, dict):
         raise TwinError(f"{path}: '{key}' must be an object")
+    return value
+
+
+def _optional_mapping(value: Any, path: Path) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise TwinError(f"{path}: optional archive section must be an object")
     return value
 
 

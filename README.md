@@ -152,6 +152,16 @@ pawsona play hera-chaos --rounds 30
 pawsona eval hera-chaos
 ```
 
+Export a comparable challenge submission:
+
+```bash
+pawsona challenge start hera-chaos
+pawsona play hera-chaos --rounds 30
+pawsona export hera-chaos --out hera-chaos-submission.pawsona
+```
+
+Challenge submission exports include challenge metadata, eval overall score, generalization score, overfit score, and a deterministic final score.
+
 ## Train In The Terminal
 
 ```bash

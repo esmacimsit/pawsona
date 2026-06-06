@@ -219,6 +219,7 @@ def main(argv: list[str] | None = None) -> int:
             args.pet,
             Path(args.pets_dir),
             Path(args.saves_dir),
+            Path(args.challenges_dir),
             out_path=Path(args.out),
         )
     if args.command == "import":
@@ -365,10 +366,18 @@ def train_pet_from_dataset(
     return 0
 
 
-def export_pet(name: str, pets_dir: Path, saves_dir: Path, out_path: Path) -> int:
+def export_pet(
+    name: str,
+    pets_dir: Path,
+    saves_dir: Path,
+    challenges_dir: Path,
+    out_path: Path,
+) -> int:
     try:
         base_pet = load_pet(name, pets_dir)
         trained_pet, loaded_state = apply_trained_state(base_pet, name, saves_dir)
+        challenge = _load_optional_challenge(name, challenges_dir)
+        challenge_metrics = analyze_tradeoff(trained_pet) if challenge is not None else None
         result = export_twin(
             base_pet,
             trained_pet,
@@ -376,15 +385,31 @@ def export_pet(name: str, pets_dir: Path, saves_dir: Path, out_path: Path) -> in
             loaded_state,
             out_path,
             source_profile=describe_pet_source(name, pets_dir),
+            challenge=challenge,
+            challenge_metrics=challenge_metrics,
         )
-    except (PetLoadError, StateError, TwinError) as error:
+    except (PetLoadError, StateError, ChallengeError, TwinError) as error:
         print(f"error: {error}")
         return 1
 
-    print(f"Exported Pawsona twin: {result.path}")
+    if result.is_challenge_submission:
+        print(f"Exported Pawsona challenge submission: {result.path}")
+        if challenge is not None:
+            print(f"Challenge ID: {challenge.id}")
+            print(f"Challenge: {challenge.name}")
+    else:
+        print(f"Exported Pawsona twin: {result.path}")
     print(f"Pet Key: {result.pet_key}")
     print(f"Rounds Trained: {result.rounds_trained}")
+    if result.final_score is not None:
+        print(f"Final Score: {result.final_score}")
     return 0
+
+
+def _load_optional_challenge(name: str, challenges_dir: Path):
+    if not (challenges_dir / name / "challenge.yaml").exists():
+        return None
+    return load_challenge(name, challenges_dir)
 
 
 def import_pet_archive(archive_path: Path, pets_dir: Path, saves_dir: Path) -> int:

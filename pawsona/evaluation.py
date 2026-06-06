@@ -64,11 +64,11 @@ def _evaluate_case(pet: Pet, case: EvaluationCase) -> EvaluationResult:
         scenario_name=case.scenario.name,
         expected_action=case.expected_action,
         chosen_action=chosen_action,
-        score=_target_score(scores, case.expected_action),
+        score=score_expected_action(scores, case.expected_action),
     )
 
 
-def _target_score(scores: dict[str, float], expected_action: str) -> int:
+def score_expected_action(scores: dict[str, float], expected_action: str) -> int:
     if expected_action not in scores:
         return 0
 

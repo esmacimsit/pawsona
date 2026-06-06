@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Callable
 
+from pawsona.benchmark import benchmark_pet
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
 from pawsona.evaluation import evaluate_pet
 from pawsona.pet import (
@@ -83,6 +84,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     eval_parser.add_argument("pet", help="Pet name, for example: hermes")
 
+    benchmark_parser = subparsers.add_parser(
+        "benchmark",
+        help="Compare behavior scores across environments.",
+    )
+    benchmark_parser.add_argument("pet", help="Pet name, for example: hermes")
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -127,6 +134,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "eval":
         return eval_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
+    if args.command == "benchmark":
+        return benchmark_cli_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
     if args.command == "play":
         return play_pet(
             args.pet,
@@ -179,6 +188,22 @@ def eval_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
     for result in report.results:
         print(f"{result.metric}: {result.score}%")
     print(f"Overall Score: {report.overall_score}%")
+    return 0
+
+
+def benchmark_cli_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
+    try:
+        pet, loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+    except (PetLoadError, StateError) as error:
+        print(f"error: {error}")
+        return 1
+
+    report = benchmark_pet(pet)
+    print(f"{pet.name} Benchmark")
+    _print_state_summary(base=False, loaded_state=loaded_state)
+    for environment_score in report.environment_scores:
+        print(f"{environment_score.environment} Accuracy: {environment_score.score}%")
+    print(f"Generalization Score: {report.generalization_score}")
     return 0
 
 

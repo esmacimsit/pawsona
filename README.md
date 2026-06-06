@@ -96,6 +96,15 @@ pawsona eval hera
 
 Evaluation scores repeatable task scenarios such as recall, focus, and calm greeting. It reads the effective trained state and does not write save files.
 
+## Benchmark Generalization
+
+```bash
+pawsona benchmark hermes
+pawsona benchmark hera
+```
+
+Benchmark compares familiar and transfer environments, then reports a generalization score. It reads the effective trained state and does not write save files.
+
 ## Train In The Terminal
 
 ```bash
@@ -117,6 +126,7 @@ pawsona play hermes --no-save
 
 ```text
 pawsona/
+  benchmark.py
   cli.py
   behavior.py
   pet.py

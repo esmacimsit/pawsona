@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
+from pawsona.evaluation import evaluate_pet
 from pawsona.pet import (
     SKILL_KEYS,
     TRAIT_KEYS,
@@ -76,6 +77,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of simulated observations to run.",
     )
 
+    eval_parser = subparsers.add_parser(
+        "eval",
+        help="Score behavior quality without changing state.",
+    )
+    eval_parser.add_argument("pet", help="Pet name, for example: hermes")
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -118,6 +125,8 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.saves_dir),
             rounds=args.rounds,
         )
+    if args.command == "eval":
+        return eval_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
     if args.command == "play":
         return play_pet(
             args.pet,
@@ -154,6 +163,22 @@ def inspect_pet(name: str, pets_dir: Path, saves_dir: Path, base: bool = False) 
     print("Memory:")
     for memory, value in sorted(pet.memory.items()):
         print(f"  {memory}: {value}")
+    return 0
+
+
+def eval_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
+    try:
+        pet, loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+    except (PetLoadError, StateError) as error:
+        print(f"error: {error}")
+        return 1
+
+    report = evaluate_pet(pet)
+    print(f"{pet.name} Evaluation")
+    _print_state_summary(base=False, loaded_state=loaded_state)
+    for result in report.results:
+        print(f"{result.metric}: {result.score}%")
+    print(f"Overall Score: {report.overall_score}%")
     return 0
 
 

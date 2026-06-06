@@ -87,6 +87,15 @@ pawsona status hera
 
 Status runs simulated observations and summarizes behavior frequencies. It does not train the pet or write save files.
 
+## Evaluate Behavior
+
+```bash
+pawsona eval hermes
+pawsona eval hera
+```
+
+Evaluation scores repeatable task scenarios such as recall, focus, and calm greeting. It reads the effective trained state and does not write save files.
+
 ## Train In The Terminal
 
 ```bash
@@ -114,6 +123,7 @@ pawsona/
   simple_yaml.py
   state.py
   status.py
+  evaluation.py
   training.py
 pets/
   hermes.yaml

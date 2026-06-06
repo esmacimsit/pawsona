@@ -21,6 +21,7 @@ from pawsona.state import LoadedState, StateError, apply_trained_state, save_tra
 from pawsona.status import observe_status
 from pawsona.tradeoff import analyze_tradeoff
 from pawsona.training import normalize_feedback, scenario_for_round, train_once
+from pawsona.twin import TwinError, export_twin, import_twin
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -115,6 +116,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of times to replay the dataset.",
     )
 
+    export_parser = subparsers.add_parser(
+        "export",
+        help="Export a pet profile and trained state.",
+    )
+    export_parser.add_argument("pet", help="Pet name, for example: hermes")
+    export_parser.add_argument(
+        "--out",
+        required=True,
+        help="Output .pawsona archive path.",
+    )
+
+    import_parser = subparsers.add_parser(
+        "import",
+        help="Import a .pawsona pet archive.",
+    )
+    import_parser.add_argument("archive", help="Path to a .pawsona archive.")
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -170,6 +188,19 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.saves_dir),
             data_path=Path(args.data),
             epochs=args.epochs,
+        )
+    if args.command == "export":
+        return export_pet(
+            args.pet,
+            Path(args.pets_dir),
+            Path(args.saves_dir),
+            out_path=Path(args.out),
+        )
+    if args.command == "import":
+        return import_pet_archive(
+            Path(args.archive),
+            Path(args.pets_dir),
+            Path(args.saves_dir),
         )
     if args.command == "play":
         return play_pet(
@@ -298,6 +329,44 @@ def train_pet_from_dataset(
     _print_metric_summary(report.after)
     print("")
     print(f"Saved trained state: {save_path}")
+    return 0
+
+
+def export_pet(name: str, pets_dir: Path, saves_dir: Path, out_path: Path) -> int:
+    try:
+        base_pet = load_pet(name, pets_dir)
+        trained_pet, loaded_state = apply_trained_state(base_pet, name, saves_dir)
+        result = export_twin(
+            base_pet,
+            trained_pet,
+            name,
+            loaded_state,
+            out_path,
+            source_profile=describe_pet_source(name, pets_dir),
+        )
+    except (PetLoadError, StateError, TwinError) as error:
+        print(f"error: {error}")
+        return 1
+
+    print(f"Exported Pawsona twin: {result.path}")
+    print(f"Pet Key: {result.pet_key}")
+    print(f"Rounds Trained: {result.rounds_trained}")
+    return 0
+
+
+def import_pet_archive(archive_path: Path, pets_dir: Path, saves_dir: Path) -> int:
+    try:
+        result = import_twin(archive_path, pets_dir, saves_dir)
+    except (StateError, TwinError) as error:
+        print(f"error: {error}")
+        return 1
+
+    print(f"Imported Pawsona twin: {archive_path}")
+    print(f"Pet Key: {result.pet_key}")
+    profile_action = "written" if result.wrote_profile else "kept existing"
+    print(f"Base Profile: {profile_action} at {result.profile_path}")
+    print(f"Trained State: written at {result.state_path}")
+    print(f"Rounds Trained: {result.rounds_trained}")
     return 0
 
 

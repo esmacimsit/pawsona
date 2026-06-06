@@ -128,6 +128,15 @@ Each JSONL line should be an object like:
 {"scenario":"owner_arrives_home","environment":"home","cue":"greeting","distraction":"door_noise","action":"observe_calmly","feedback":"reward","target_skill":"settle"}
 ```
 
+## Export A Digital Twin
+
+```bash
+pawsona export hermes --out hermes.pawsona
+pawsona import hermes.pawsona
+```
+
+Exports preserve the base profile, trained state, and Pawsona package metadata in one `.pawsona` archive. Import writes trained state and keeps an existing base profile if one is already present.
+
 ## Train In The Terminal
 
 ```bash
@@ -160,6 +169,7 @@ pawsona/
   state.py
   status.py
   tradeoff.py
+  twin.py
   evaluation.py
   training.py
 pets/

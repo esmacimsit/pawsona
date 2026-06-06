@@ -78,6 +78,33 @@ def save_trained_state(
     return path
 
 
+def save_trained_state_snapshot(
+    pet: Pet,
+    name: str,
+    saves_dir: Path,
+    rounds_trained: int,
+    source_profile: str,
+    last_updated: str | None = None,
+) -> Path:
+    if rounds_trained < 0:
+        raise StateError("'rounds_trained' must be a non-negative integer")
+
+    path = state_path(name, saves_dir)
+    data = {
+        "pet": pet.name,
+        "pet_key": pet_key(name),
+        "rounds_trained": rounds_trained,
+        "last_updated": last_updated or datetime.now(UTC).isoformat(timespec="seconds"),
+        "source_profile": source_profile,
+        "skills": dict(sorted(pet.skills.items())),
+        "memory": dict(sorted(pet.memory.items())),
+    }
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
 def _read_state(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))

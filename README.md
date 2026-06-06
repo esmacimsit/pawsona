@@ -137,6 +137,21 @@ pawsona import hermes.pawsona
 
 Exports preserve the base profile, trained state, and Pawsona package metadata in one `.pawsona` archive. Import writes trained state and keeps an existing base profile if one is already present.
 
+## Start A Challenge
+
+```bash
+pawsona challenge list
+pawsona challenge show hera-chaos
+pawsona challenge start hera-chaos
+```
+
+Challenge Mode installs a fixed public base checkpoint as a local pet profile. After starting, use the normal training and metric commands:
+
+```bash
+pawsona play hera-chaos --rounds 30
+pawsona eval hera-chaos
+```
+
 ## Train In The Terminal
 
 ```bash
@@ -159,8 +174,13 @@ pawsona play hermes --no-save
 ```text
 examples/
   hera-calm.jsonl
+challenges/
+  hera-chaos/
+    base.yaml
+    challenge.yaml
 pawsona/
   benchmark.py
+  challenge.py
   cli.py
   dataset.py
   behavior.py

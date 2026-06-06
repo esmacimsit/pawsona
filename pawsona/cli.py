@@ -6,6 +6,7 @@ from typing import Callable
 
 from pawsona.benchmark import benchmark_pet
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
+from pawsona.challenge import ChallengeError, list_challenges, load_challenge, start_challenge
 from pawsona.dataset import DatasetError, load_jsonl_dataset, train_from_dataset
 from pawsona.evaluation import evaluate_pet
 from pawsona.pet import (
@@ -38,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--saves-dir",
         default="saves",
         help="Directory containing trained pet state JSON files.",
+    )
+    parser.add_argument(
+        "--challenges-dir",
+        default="challenges",
+        help="Directory containing fixed public challenge definitions.",
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -133,6 +139,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     import_parser.add_argument("archive", help="Path to a .pawsona archive.")
 
+    challenge_parser = subparsers.add_parser(
+        "challenge",
+        help="Work with fixed public challenge checkpoints.",
+    )
+    challenge_subparsers = challenge_parser.add_subparsers(dest="challenge_command")
+    challenge_subparsers.add_parser("list", help="List available challenges.")
+
+    challenge_show_parser = challenge_subparsers.add_parser(
+        "show",
+        help="Show challenge details.",
+    )
+    challenge_show_parser.add_argument("challenge_id", help="Challenge id, for example: hera-chaos")
+
+    challenge_start_parser = challenge_subparsers.add_parser(
+        "start",
+        help="Install a challenge base profile into the pets directory.",
+    )
+    challenge_start_parser.add_argument("challenge_id", help="Challenge id, for example: hera-chaos")
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -201,6 +226,14 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.archive),
             Path(args.pets_dir),
             Path(args.saves_dir),
+        )
+    if args.command == "challenge":
+        return challenge_command(
+            args.challenge_command,
+            Path(args.challenges_dir),
+            Path(args.pets_dir),
+            Path(args.saves_dir),
+            challenge_id=getattr(args, "challenge_id", None),
         )
     if args.command == "play":
         return play_pet(
@@ -367,6 +400,95 @@ def import_pet_archive(archive_path: Path, pets_dir: Path, saves_dir: Path) -> i
     print(f"Base Profile: {profile_action} at {result.profile_path}")
     print(f"Trained State: written at {result.state_path}")
     print(f"Rounds Trained: {result.rounds_trained}")
+    return 0
+
+
+def challenge_command(
+    command: str | None,
+    challenges_dir: Path,
+    pets_dir: Path,
+    saves_dir: Path,
+    challenge_id: str | None = None,
+) -> int:
+    if command is None:
+        print("error: challenge requires a subcommand: list, show, or start")
+        return 1
+    if command == "list":
+        return list_challenge_command(challenges_dir)
+    if command == "show" and challenge_id is not None:
+        return show_challenge_command(challenge_id, challenges_dir)
+    if command == "start" and challenge_id is not None:
+        return start_challenge_command(challenge_id, challenges_dir, pets_dir, saves_dir)
+    print(f"error: unknown challenge subcommand '{command}'")
+    return 1
+
+
+def list_challenge_command(challenges_dir: Path) -> int:
+    try:
+        challenges = list_challenges(challenges_dir)
+    except ChallengeError as error:
+        print(f"error: {error}")
+        return 1
+
+    if not challenges:
+        print("No challenges found.")
+        return 0
+
+    print("Available Challenges:")
+    for challenge in challenges:
+        print(f"  {challenge.id}: {challenge.name} ({challenge.difficulty})")
+    return 0
+
+
+def show_challenge_command(challenge_id: str, challenges_dir: Path) -> int:
+    try:
+        challenge = load_challenge(challenge_id, challenges_dir)
+    except ChallengeError as error:
+        print(f"error: {error}")
+        return 1
+
+    print(f"Challenge: {challenge.name}")
+    print(f"ID: {challenge.id}")
+    print(f"Difficulty: {challenge.difficulty}")
+    print(f"Version: {challenge.version}")
+    print(f"Goal: {challenge.goal}")
+    print(f"Base Pet: {challenge.base_pet}")
+    print("Focus:")
+    for item in challenge.focus:
+        print(f"  {item}")
+    print("Metrics:")
+    for item in challenge.metrics:
+        print(f"  {item}")
+    print("Training Scenarios:")
+    for item in challenge.training_scenarios:
+        print(f"  {item}")
+    print("Benchmark Environments:")
+    for item in challenge.benchmark_environments:
+        print(f"  {item}")
+    return 0
+
+
+def start_challenge_command(
+    challenge_id: str,
+    challenges_dir: Path,
+    pets_dir: Path,
+    saves_dir: Path,
+) -> int:
+    try:
+        result = start_challenge(challenge_id, challenges_dir, pets_dir, saves_dir)
+    except ChallengeError as error:
+        print(f"error: {error}")
+        return 1
+
+    print(f"Started Challenge: {result.challenge.name}")
+    print(f"Challenge ID: {result.challenge.id}")
+    action = "written" if result.wrote_profile else "kept existing"
+    print(f"Base Profile: {action} at {result.profile_path}")
+    if result.has_saved_state:
+        print(f"Saved State: existing at {result.save_path}")
+    else:
+        print("Saved State: clean")
+    print(f"Next: pawsona play {result.challenge.id} --rounds 30")
     return 0
 
 

@@ -1,0 +1,33 @@
+name: Hera Chaos
+species: dog
+breed: mixed
+age: 3
+sex: female
+neutered: true
+
+traits:
+  energy: 0.95
+  confidence: 0.55
+  sociability: 0.85
+  attachment: 0.95
+  affection_seeking: 0.95
+  curiosity: 0.8
+  impulsivity: 0.95
+  self_control: 0.15
+  sensitivity: 0.65
+  trainability: 0.6
+  vigilance: 0.6
+  food_drive: 0.75
+  play_drive: 0.85
+
+skills:
+  recall: 0.18
+  focus: 0.1
+  settle: 0.05
+  fetch: 0.25
+
+memory:
+  home: 0.1
+  door_noise: 0.4
+  squirrel: 0.3
+  toy: 0.4

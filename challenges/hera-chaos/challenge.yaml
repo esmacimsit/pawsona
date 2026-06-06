@@ -1,0 +1,10 @@
+id: hera-chaos
+name: Hera Chaos
+difficulty: hard
+base_pet: base.yaml
+version: "1.0"
+goal: Reduce jumping without destroying recall.
+focus: calm_greeting, recall, focus
+metrics: calm_greeting_score, recall_score, focus_score, generalization_score, overfit_score
+training_scenarios: owner_arrives_home, recall_from_yard, focus_near_food, settle_during_noise
+benchmark_environments: home, park, street

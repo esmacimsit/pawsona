@@ -84,6 +84,15 @@ def normalize_feedback(value: str) -> str | None:
 
 def train_once(pet: Pet, scenario: Scenario, feedback: str) -> tuple[Pet, dict[str, float]]:
     action, _scores = choose_action(pet, scenario)
+    return train_action(pet, scenario, action, feedback)
+
+
+def train_action(
+    pet: Pet,
+    scenario: Scenario,
+    action: str,
+    feedback: str,
+) -> tuple[Pet, dict[str, float]]:
     skill_updates = _skill_updates(action, scenario, feedback)
     memory_updates = _memory_updates(action, scenario, feedback)
 

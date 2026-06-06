@@ -114,6 +114,20 @@ pawsona tradeoff hera
 
 Tradeoff compares the evaluation task score against benchmark generalization and reports a simple overfit score. It is read-only and does not write save files.
 
+## Train From A Dataset
+
+```bash
+pawsona train hera --data examples/hera-calm.jsonl --epochs 3
+```
+
+Dataset training replays JSONL interaction samples, updates the same saved trained state used by `play`, and prints before/after evaluation, generalization, and overfit scores.
+
+Each JSONL line should be an object like:
+
+```json
+{"scenario":"owner_arrives_home","environment":"home","cue":"greeting","distraction":"door_noise","action":"observe_calmly","feedback":"reward","target_skill":"settle"}
+```
+
 ## Train In The Terminal
 
 ```bash
@@ -134,9 +148,12 @@ pawsona play hermes --no-save
 ## Project Shape
 
 ```text
+examples/
+  hera-calm.jsonl
 pawsona/
   benchmark.py
   cli.py
+  dataset.py
   behavior.py
   pet.py
   simple_yaml.py

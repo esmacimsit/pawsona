@@ -6,6 +6,7 @@ from typing import Callable
 
 from pawsona.benchmark import benchmark_pet
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
+from pawsona.dataset import DatasetError, load_jsonl_dataset, train_from_dataset
 from pawsona.evaluation import evaluate_pet
 from pawsona.pet import (
     SKILL_KEYS,
@@ -97,6 +98,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     tradeoff_parser.add_argument("pet", help="Pet name, for example: hermes")
 
+    train_parser = subparsers.add_parser(
+        "train",
+        help="Train a pet from a JSONL interaction dataset.",
+    )
+    train_parser.add_argument("pet", help="Pet name, for example: hera")
+    train_parser.add_argument(
+        "--data",
+        required=True,
+        help="Path to a JSONL interaction dataset.",
+    )
+    train_parser.add_argument(
+        "--epochs",
+        type=int,
+        default=1,
+        help="Number of times to replay the dataset.",
+    )
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -145,6 +163,14 @@ def main(argv: list[str] | None = None) -> int:
         return benchmark_cli_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
     if args.command == "tradeoff":
         return tradeoff_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
+    if args.command == "train":
+        return train_pet_from_dataset(
+            args.pet,
+            Path(args.pets_dir),
+            Path(args.saves_dir),
+            data_path=Path(args.data),
+            epochs=args.epochs,
+        )
     if args.command == "play":
         return play_pet(
             args.pet,
@@ -232,6 +258,46 @@ def tradeoff_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
     print("")
     print("Interpretation:")
     print(report.interpretation)
+    return 0
+
+
+def train_pet_from_dataset(
+    name: str,
+    pets_dir: Path,
+    saves_dir: Path,
+    data_path: Path,
+    epochs: int,
+) -> int:
+    try:
+        pet, _loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+        samples = load_jsonl_dataset(data_path)
+        trained_pet, report = train_from_dataset(pet, samples, epochs)
+        save_path = save_trained_state(
+            trained_pet,
+            name,
+            saves_dir,
+            report.applied_updates,
+            source_profile=describe_pet_source(name, pets_dir),
+        )
+    except (PetLoadError, StateError, DatasetError) as error:
+        print(f"error: {error}")
+        return 1
+
+    print(f"Pawsona Dataset Training: {name}")
+    print(f"Dataset: {data_path}")
+    print(f"Epochs: {epochs}")
+    print(f"Samples loaded: {report.samples_loaded}")
+    print(f"Samples seen: {report.samples_seen}")
+    print(f"Applied updates: {report.applied_updates}")
+    print(f"Skipped samples: {report.skipped_samples}")
+    print("")
+    print("Before:")
+    _print_metric_summary(report.before)
+    print("")
+    print("After:")
+    _print_metric_summary(report.after)
+    print("")
+    print(f"Saved trained state: {save_path}")
     return 0
 
 
@@ -400,6 +466,12 @@ def _print_state_summary(base: bool, loaded_state: LoadedState | None) -> None:
     print(f"Rounds Trained: {loaded_state.rounds_trained}")
     if loaded_state.last_updated is not None:
         print(f"Last Updated: {loaded_state.last_updated}")
+
+
+def _print_metric_summary(report) -> None:
+    print(f"  Eval Overall: {report.task_score}%")
+    print(f"  Generalization: {report.generalization_score}%")
+    print(f"  Overfit: {report.overfit_score}%")
 
 
 def _ask_text(prompt: str, input_fn: Callable[[str], str] = input) -> str:

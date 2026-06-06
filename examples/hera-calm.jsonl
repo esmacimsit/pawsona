@@ -1,0 +1,5 @@
+{"scenario":"owner_arrives_home","environment":"home","cue":"greeting","distraction":"door_noise","action":"observe_calmly","feedback":"reward","target_skill":"settle"}
+{"scenario":"settle_during_noise","environment":"home","cue":"settle","distraction":"door_noise","action":"observe_calmly","feedback":"praise","target_skill":"settle"}
+{"scenario":"recall_from_yard","environment":"yard","cue":"recall","distraction":"squirrel","action":"return_to_owner","feedback":"reward","target_skill":"recall"}
+{"scenario":"focus_near_food","environment":"home","cue":"focus","distraction":"food","action":"return_to_owner","feedback":"praise","target_skill":"focus"}
+{"scenario":"fetch_at_park","environment":"park","cue":"fetch","distraction":"squirrel","action":"bring_toy","feedback":"reward","target_skill":"fetch"}

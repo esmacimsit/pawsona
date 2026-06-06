@@ -43,17 +43,16 @@ def list_challenges(challenges_dir: Path) -> tuple[Challenge, ...]:
         raise ChallengeError(f"{challenges_dir}: challenges path is not a directory")
 
     challenges = []
-    for child in sorted(challenges_dir.iterdir()):
-        if child.is_dir() and (child / "challenge.yaml").exists():
-            challenges.append(load_challenge(child.name, challenges_dir))
+    for child in _challenge_dirs(challenges_dir):
+        challenges.append(load_challenge(child.name, challenges_dir))
     return tuple(challenges)
 
 
 def load_challenge(challenge_id: str, challenges_dir: Path) -> Challenge:
-    challenge_dir = challenges_dir / challenge_id
-    metadata_path = challenge_dir / "challenge.yaml"
-    if not metadata_path.exists():
+    challenge_dir = find_challenge_dir(challenge_id, challenges_dir)
+    if challenge_dir is None:
         raise ChallengeError(f"unknown challenge '{challenge_id}'")
+    metadata_path = challenge_dir / "challenge.yaml"
 
     try:
         data = load_yaml_mapping(metadata_path)
@@ -83,6 +82,17 @@ def load_challenge(challenge_id: str, challenges_dir: Path) -> Challenge:
     )
 
 
+def find_challenge_dir(challenge_id: str, challenges_dir: Path) -> Path | None:
+    candidates = (
+        challenges_dir / challenge_id,
+        challenges_dir / "community" / challenge_id,
+    )
+    for candidate in candidates:
+        if (candidate / "challenge.yaml").exists():
+            return candidate
+    return None
+
+
 def start_challenge(
     challenge_id: str,
     challenges_dir: Path,
@@ -109,6 +119,20 @@ def start_challenge(
         wrote_profile=wrote_profile,
         has_saved_state=save_path.exists(),
     )
+
+
+def _challenge_dirs(challenges_dir: Path) -> tuple[Path, ...]:
+    candidates: list[Path] = []
+    for child in sorted(challenges_dir.iterdir()):
+        if child.is_dir() and (child / "challenge.yaml").exists():
+            candidates.append(child)
+
+    community_dir = challenges_dir / "community"
+    if community_dir.exists() and community_dir.is_dir():
+        for child in sorted(community_dir.iterdir()):
+            if child.is_dir() and (child / "challenge.yaml").exists():
+                candidates.append(child)
+    return tuple(candidates)
 
 
 def _required_string(data: dict[str, Any], key: str, path: Path) -> str:

@@ -6,7 +6,13 @@ from typing import Callable
 
 from pawsona.benchmark import benchmark_pet
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
-from pawsona.challenge import ChallengeError, list_challenges, load_challenge, start_challenge
+from pawsona.challenge import (
+    ChallengeError,
+    find_challenge_dir,
+    list_challenges,
+    load_challenge,
+    start_challenge,
+)
 from pawsona.dataset import DatasetError, load_jsonl_dataset, train_from_dataset
 from pawsona.evaluation import evaluate_pet
 from pawsona.pet import (
@@ -23,6 +29,7 @@ from pawsona.status import observe_status
 from pawsona.tradeoff import analyze_tradeoff
 from pawsona.training import normalize_feedback, scenario_for_round, train_once
 from pawsona.twin import TwinError, export_twin, import_twin
+from pawsona.validate import validate_content
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -158,6 +165,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     challenge_start_parser.add_argument("challenge_id", help="Challenge id, for example: hera-chaos")
 
+    subparsers.add_parser(
+        "validate",
+        help="Validate curated pet and challenge content.",
+    )
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -236,6 +248,8 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.saves_dir),
             challenge_id=getattr(args, "challenge_id", None),
         )
+    if args.command == "validate":
+        return validate_content_command(Path(args.pets_dir), Path(args.challenges_dir))
     if args.command == "play":
         return play_pet(
             args.pet,
@@ -407,7 +421,7 @@ def export_pet(
 
 
 def _load_optional_challenge(name: str, challenges_dir: Path):
-    if not (challenges_dir / name / "challenge.yaml").exists():
+    if find_challenge_dir(name, challenges_dir) is None:
         return None
     return load_challenge(name, challenges_dir)
 
@@ -515,6 +529,22 @@ def start_challenge_command(
         print("Saved State: clean")
     print(f"Next: pawsona play {result.challenge.id} --rounds 30")
     return 0
+
+
+def validate_content_command(pets_dir: Path, challenges_dir: Path) -> int:
+    report = validate_content(pets_dir, challenges_dir)
+    print("Pawsona Content Validation")
+    print(f"Pets Checked: {report.checked_pets}")
+    print(f"Challenges Checked: {report.checked_challenges}")
+    if report.ok:
+        print("Status: passed")
+        return 0
+
+    print("Status: failed")
+    print("Errors:")
+    for error in report.errors:
+        print(f"  {error}")
+    return 1
 
 
 def create_pet(pets_dir: Path, force: bool = False) -> int:

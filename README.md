@@ -162,6 +162,14 @@ pawsona export hera-chaos --out hera-chaos-submission.pawsona
 
 Challenge submission exports include challenge metadata, eval overall score, generalization score, overfit score, and a deterministic final score.
 
+## Validate Public Content
+
+```bash
+pawsona validate
+```
+
+Validation checks curated pet profiles and challenge definitions before a Pull Request. Personal pets do not need a Pull Request.
+
 ## Train In The Terminal
 
 ```bash
@@ -188,6 +196,7 @@ challenges/
   hera-chaos/
     base.yaml
     challenge.yaml
+  community/
 pawsona/
   benchmark.py
   challenge.py
@@ -200,6 +209,7 @@ pawsona/
   status.py
   tradeoff.py
   twin.py
+  validate.py
   evaluation.py
   training.py
 pets/

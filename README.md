@@ -71,6 +71,8 @@ pawsona create
 
 Trait questions use a `1` to `5` scale and are normalized into `0.0` to `1.0` YAML values.
 
+Breed priors add small initialization adjustments for known breeds such as `pug`, `border_collie`, `golden_retriever`, and `mixed`. User answers remain the main source of personality.
+
 ## Generate An Action
 
 ```bash

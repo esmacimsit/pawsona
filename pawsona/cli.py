@@ -6,6 +6,7 @@ from typing import Callable
 
 from pawsona.benchmark import benchmark_pet
 from pawsona.behavior import DEFAULT_SCENARIO, choose_action
+from pawsona.breeds import apply_breed_prior, load_breed_prior
 from pawsona.challenge import (
     ChallengeError,
     find_challenge_dir,
@@ -536,6 +537,7 @@ def validate_content_command(pets_dir: Path, challenges_dir: Path) -> int:
     print("Pawsona Content Validation")
     print(f"Pets Checked: {report.checked_pets}")
     print(f"Challenges Checked: {report.checked_challenges}")
+    print(f"Breed Priors Checked: {report.checked_breed_priors}")
     if report.ok:
         print("Status: passed")
         return 0
@@ -556,22 +558,31 @@ def create_pet(pets_dir: Path, force: bool = False) -> int:
         print(f"error: {path} already exists. Re-run with --force to overwrite.")
         return 1
 
+    breed = _ask_text("Breed")
+    age = _ask_int("Age", minimum=0)
+    sex = _ask_choice("Sex", {"female", "male", "unknown"})
+    neutered = _ask_bool("Neutered")
+    prior = load_breed_prior(breed)
+    traits = {
+        trait: _normalize_scale(_ask_int(_trait_prompt(trait), minimum=1, maximum=5))
+        for trait in TRAIT_KEYS
+    }
+    traits = apply_breed_prior(traits, prior)
+
     profile = {
         "name": name,
         "species": "dog",
-        "breed": _ask_text("Breed"),
-        "age": _ask_int("Age", minimum=0),
-        "sex": _ask_choice("Sex", {"female", "male", "unknown"}),
-        "neutered": _ask_bool("Neutered"),
-        "traits": {
-            trait: _normalize_scale(_ask_int(_trait_prompt(trait), minimum=1, maximum=5))
-            for trait in TRAIT_KEYS
-        },
+        "breed": breed,
+        "age": age,
+        "sex": sex,
+        "neutered": neutered,
+        "traits": traits,
         "skills": {skill: 0.0 for skill in SKILL_KEYS},
         "memory": {},
     }
 
     write_pet_profile(path, profile)
+    print(f"Applied breed prior: {prior.breed}")
     print(f"created: {path}")
     return 0
 

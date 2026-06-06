@@ -1,0 +1,9 @@
+breed: border_collie
+adjustments:
+  energy: 0.05
+  curiosity: 0.03
+  self_control: 0.03
+  trainability: 0.06
+  vigilance: 0.02
+  play_drive: 0.04
+  food_drive: -0.02

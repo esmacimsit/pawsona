@@ -1,0 +1,10 @@
+breed: golden_retriever
+adjustments:
+  confidence: 0.03
+  sociability: 0.05
+  attachment: 0.03
+  affection_seeking: 0.03
+  trainability: 0.04
+  food_drive: 0.03
+  play_drive: 0.03
+  vigilance: -0.02

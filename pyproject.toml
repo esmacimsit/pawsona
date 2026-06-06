@@ -27,4 +27,4 @@ paw = "pawsona.cli:main"
 include = ["pawsona*"]
 
 [tool.setuptools.package-data]
-pawsona = ["builtin_pets/*.yaml"]
+pawsona = ["builtin_pets/*.yaml", "knowledge/breeds/*.yaml"]

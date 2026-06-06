@@ -1,0 +1,10 @@
+breed: pug
+adjustments:
+  energy: -0.04
+  sociability: 0.03
+  affection_seeking: 0.04
+  impulsivity: -0.02
+  self_control: 0.03
+  sensitivity: 0.03
+  food_drive: 0.04
+  play_drive: -0.03

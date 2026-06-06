@@ -1,6 +1,7 @@
 .DS_Store
 /docs/milestones.md
 /docs/brief.md
+/docs/challenge.md
 
 __pycache__/
 *.py[cod]

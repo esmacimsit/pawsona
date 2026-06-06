@@ -105,6 +105,15 @@ pawsona benchmark hera
 
 Benchmark compares familiar and transfer environments, then reports a generalization score. It reads the effective trained state and does not write save files.
 
+## Check Training Tradeoffs
+
+```bash
+pawsona tradeoff hermes
+pawsona tradeoff hera
+```
+
+Tradeoff compares the evaluation task score against benchmark generalization and reports a simple overfit score. It is read-only and does not write save files.
+
 ## Train In The Terminal
 
 ```bash
@@ -133,6 +142,7 @@ pawsona/
   simple_yaml.py
   state.py
   status.py
+  tradeoff.py
   evaluation.py
   training.py
 pets/

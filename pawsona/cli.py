@@ -18,6 +18,7 @@ from pawsona.pet import (
 )
 from pawsona.state import LoadedState, StateError, apply_trained_state, save_trained_state
 from pawsona.status import observe_status
+from pawsona.tradeoff import analyze_tradeoff
 from pawsona.training import normalize_feedback, scenario_for_round, train_once
 
 
@@ -90,6 +91,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark_parser.add_argument("pet", help="Pet name, for example: hermes")
 
+    tradeoff_parser = subparsers.add_parser(
+        "tradeoff",
+        help="Compare task performance against generalization.",
+    )
+    tradeoff_parser.add_argument("pet", help="Pet name, for example: hermes")
+
     play_parser = subparsers.add_parser(
         "play",
         help="Run an interactive training session.",
@@ -136,6 +143,8 @@ def main(argv: list[str] | None = None) -> int:
         return eval_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
     if args.command == "benchmark":
         return benchmark_cli_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
+    if args.command == "tradeoff":
+        return tradeoff_pet(args.pet, Path(args.pets_dir), Path(args.saves_dir))
     if args.command == "play":
         return play_pet(
             args.pet,
@@ -204,6 +213,25 @@ def benchmark_cli_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
     for environment_score in report.environment_scores:
         print(f"{environment_score.environment} Accuracy: {environment_score.score}%")
     print(f"Generalization Score: {report.generalization_score}")
+    return 0
+
+
+def tradeoff_pet(name: str, pets_dir: Path, saves_dir: Path) -> int:
+    try:
+        pet, loaded_state = _load_cli_pet(name, pets_dir, saves_dir)
+    except (PetLoadError, StateError) as error:
+        print(f"error: {error}")
+        return 1
+
+    report = analyze_tradeoff(pet)
+    print(f"Pawsona Tradeoff Report: {pet.name}")
+    _print_state_summary(base=False, loaded_state=loaded_state)
+    print(f"Task Score: {report.task_score}%")
+    print(f"Generalization Score: {report.generalization_score}%")
+    print(f"Overfit Score: {report.overfit_score}%")
+    print("")
+    print("Interpretation:")
+    print(report.interpretation)
     return 0
 
 
